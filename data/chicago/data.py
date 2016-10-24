@@ -4,6 +4,7 @@ import os
 import argparse
 from datetime import datetime
 import numbers
+import requests
 import matplotlib.path as mplPath
 import re
 
@@ -23,7 +24,9 @@ class ChicagoData():
 		self.meta['beat'] = self._read_beat()
 		self.meta['district'] = self._read_district()
 		self.meta['census'] = self._read_census()
+		self.meta['fbi'] = self._read_fbi()
 
+		
 	def _read_community(self):
 		community = pd.read_csv('community_areas.csv')
 		return community
@@ -40,8 +43,29 @@ class ChicagoData():
 		census = pd.read_csv('census_data.csv')
 		return census
 
+	def _read_fbi(self):
+		fbi = pd.read_csv('fbi.csv')
+		return fbi
+
+	def pull_fbi_codes(self):
+		url = "http://gis.chicagopolice.org/clearmap_crime_sums/crime_types.html"
+		response = requests.get(url)
+		content = response.content
+		codes = re.findall("\r\n\t+.+<br>|\r\n\t+.+</td>", content)
+		codes_clean = [re.sub('<td.*\"\d+\">|</[a-zA-Z]+>|<br>', "", c.replace("\r", "").replace("\t", "").replace("\n", "")) for c in codes]
+		codes_split = [tuple(c.split(' ', 1)) for c in codes_clean if re.match("^\d", c)]
+		pd.DataFrame(codes_split, columns=['CODE', 'DESCRIPTION']).to_csv('fbi.csv')
+		return self
+
 	def pull_data(self):
 		os.system("curl 'https://data.cityofchicago.org/api/views/diig-85pa/rows.csv?accessType=DOWNLOAD' -o 'Crimes_-_2010_to_present.csv'")
+		return self
+
+	def merge_meta(self):
+		self.df = self.df.merge(cd.meta['beat'], how='left', left_on='Beat', right_on='BEAT_NUM')
+		self.df = self.df.merge(cd.meta['community'], how='left', left_on='Community Area', right_on='AREA_NUMBE')
+		self.df = self.df.merge(cd.meta['census'], how='left', left_on='Community Area', right_on='Community Area Number')
+		self.df = self.df.merge(cd.meta['fbi'], how='left', left_on='FBI CODE', right_on='CODE')
 		return self
 
 	def pull_metadata(self):
@@ -76,17 +100,27 @@ class ChicagoData():
 		pivot_rename = pivot_split.rename(columns={int(k): v for k, v in enumerate(fields)})
 		return pivot_rename
 
-	def check_borders(self, point, dataset):
-		coordinate_sets = re.match("MULTIPOLYGON \(\(\((.*)\)\)\)", self.meta[dataset].ix[0]['the_geom']).group(1)
-		coordinate_strings = [tuple(c.split(" ")) for c in coordinate_sets.split(", ")]
-		coordinates = [(float(c[0]), float(c[1])) for c in coordinate_strings]
-		bbPath = mplPath.Path(np.array(coordinates))
-		if isinstance(point, basestring):
-			point_set = point.strip('\(').strip('\)').strip(" ").split(',')
+	def check_borders(self, ID, dataset):
+		point = self.df.loc[self.df.ID==ID, 'Location'].values[0]
+			
+		for index, row in self.meta[dataset].iterrows():
+			coordinate_sets = re.match("MULTIPOLYGON \(\(\((.*)\)\)\)", row['the_geom']).group(1)
+			coordinate_strings = [tuple(c.replace("\(", "").replace("\)", "").split(" ")) for c in coordinate_sets.split(", ")]
+			coordinates = [(float(c[0]), float(c[1])) for c in coordinate_strings]
+			bbPath = mplPath.Path(np.array(coordinates))
+			
+			if isinstance(point, basestring):
+				point = point.replace("\(", "").replace("\)", "").replace(" ", "").split(", ")
 
-		points = (float(point_set[0]), float(point_set[1]))
+			points = (float(point[0]), float(point[1]))
 
-		return bbPath.contains_point(points)
+			if bbPath.contains_point(points):
+				print 'index'
+				return index
+
+
+	def map_point(self, dataset):
+		pass
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="Chicago_Data")
@@ -115,15 +149,17 @@ if __name__=="__main__":
 		cd.pull_data()
 	if args.download_metadata:
 		cd.pull_metadata()	
+		cd.pull_fbi_codes()
 
 	cd.read_data(limit=args.limit)
 	cd.read_meta()
+	cd.merge_meta()
+	
 
-	data = cd.df
-	print 'data:\n', data
-	for c in data.columns:
+	print 'data:\n', cd.df
+	for c in cd.df.columns:
 		print c
-	print 'min date: %s\nmax data: %s' % (data['Date'].min(), data['Date'].max())
+	print 'min date: %s\nmax data: %s' % (cd.df['Date'].min(), cd.df['Date'].max())
 
 	h = cd.hisotgram('Primary Type', dt_format='%m/%Y')
 	print h
@@ -135,6 +171,22 @@ if __name__=="__main__":
 	if not args.limit:
 		d.to_csv('./analysis/description_stats.csv')
 	
+	f = cd.hisotgram(['FBI Code'], dt_format='%m/%Y')
+	print f
+	if not args.limit:
+		f.to_csv('./analysis/FBI_stats.csv')
+
+	i = cd.hisotgram(['PER CAPITA INCOME'], dt_format='%Y')
+	print i
+	if not args.limit:
+		i.to_csv('./analysis/income_stats.csv')
+
+	hardship = cd.hisotgram(['PER CAPITA INCOME'], dt_format='%Y')
+	print hardship
+	if not args.limit:
+		hardship.to_csv('./analysis/harship_stats.csv')
+
+
 	corr = h.set_index('Primary Type').T.fillna(0).corr()
 	if not args.limit:
 		corr.to_csv('./analysis/primary_description_correlations.csv')
@@ -144,4 +196,3 @@ if __name__=="__main__":
 		print m
 		print cd.meta[m]
 
-	print cd.check_borders(data.ix[0]['Location'], 'beat')
