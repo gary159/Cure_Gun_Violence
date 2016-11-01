@@ -17,13 +17,18 @@ def chicago():
     # creating a map in the view
     city_map = Map(
         identifier="view-side",
-        lat=37.4419,
-        lng=-122.1419,
+        zoom=12,
+        center=(41.8781136, -87.6298),        
         maptype='ROADMAP',
         zoom_control=True,
-        markers=[(37.4419, -122.1419)]
+        scroll_wheel=False,
+        fullscreen_control=False,
+        rorate_control=False,
+        maptype_control=False,
+        streetview_control=False,
+        style="height:700px;width:500px;margin:0;"
     )
-    
+
     return render_template('map.html', city_map=city_map)
 
 
