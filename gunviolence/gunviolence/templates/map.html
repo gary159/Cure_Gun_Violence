@@ -2,10 +2,11 @@
     <html>
     <head>
     	{{ city_map.js }}
+		<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
     </head>
     <body align="center">
-        <h1>Flask Google Map of Chicago</h1>
-        <div name="map" padding-left="20px">{{ city_map.html }}</div>
+        <h1>Chicago</h1>
+        <div id="map">{{ city_map.html }}</div>
 
        
     </body>

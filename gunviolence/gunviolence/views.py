@@ -4,6 +4,7 @@ from flask_googlemaps import Map
 from flask import Flask, render_template, url_for
 from werkzeug.serving import run_simple
 from ConfigUtil import config
+from data import ChicagoData
 
 key=config['GOOGLE_MAPS_KEY']
 GoogleMaps(app, key=key)

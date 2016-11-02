@@ -13,7 +13,8 @@ from statsmodels.api import OLS
 
 class ChicagoData():
 	def __init__(self):
-		self.CSV_FILE = "Crimes_-_2010_to_present.csv"
+		self.DATA_PATH =  os.path.join(os.path.dirname(__file__), "data/")
+		self.CSV_FILE = self.DATA_PATH + "Crimes_-_2010_to_present.csv"
 		self.df = pd.DataFrame()
 		self.meta = dict()
 		self.gun_fbi_codes = ['01A', '2', '3', '04B', '04A', '15']
@@ -31,23 +32,23 @@ class ChicagoData():
 
 		
 	def _read_community(self):
-		community = pd.read_csv('community_areas.csv')
+		community = pd.read_csv(self.DATA_PATH + 'community_areas.csv')
 		return community
 
 	def _read_beat(self):
-		beat = pd.read_csv('police_beat.csv')
+		beat = pd.read_csv(self.DATA_PATH + 'police_beat.csv')
 		return beat
 
 	def _read_district(self):
-		police_district = pd.read_csv('police_districts.csv')
+		police_district = pd.read_csv(self.DATA_PATH + 'police_districts.csv')
 		return police_district
 
 	def _read_census(self):
-		census = pd.read_csv('census_data.csv')
+		census = pd.read_csv(self.DATA_PATH + 'census_data.csv')
 		return census[~np.isnan(census['Community Area Number'])]
 
 	def _read_fbi(self):
-		fbi = pd.read_csv('fbi.csv')
+		fbi = pd.read_csv(self.DATA_PATH + 'fbi.csv')
 		return fbi
 
 	def pull_fbi_codes(self):
@@ -60,31 +61,40 @@ class ChicagoData():
 		special_codes_ordered = [(c[1], c[0]) for c in special_codes]
 		codes_clean = [re.sub('<td.*\"\d+\">|</[a-zA-Z]+>|<br>', "", c.replace("\r", "").replace("\t", "").replace("\n", "")) for c in codes]
 		codes_split = [tuple(c.split(' ', 1)) for c in codes_clean if re.match("^\d", c)]
-		pd.DataFrame(codes_split+special_codes_ordered, columns=['CODE', 'FBI DESCRIPTION']).to_csv('fbi.csv')
+		pd.DataFrame(codes_split+special_codes_ordered, columns=['CODE', 'FBI DESCRIPTION']).to_csv(self.DATA_PATH + 'fbi.csv')
 		return self
 
 	def pull_data(self):
-		os.system("curl 'https://data.cityofchicago.org/api/views/diig-85pa/rows.csv?accessType=DOWNLOAD' -o 'Crimes_-_2010_to_present.csv'")
+		os.system("curl 'https://data.cityofchicago.org/api/views/diig-85pa/rows.csv?accessType=DOWNLOAD' -o '%sCrimes_-_2010_to_present.csv'" % self.DATA_PATH)
 		return self
 
 	def merge_meta(self):
-		self.df = self.df.merge(cd.meta['beat'], how='left', left_on='Beat', right_on='BEAT_NUM')
-		self.df = self.df.merge(cd.meta['community'], how='left', left_on='Community Area', right_on='AREA_NUMBE')
+		self.df = self.df.merge(cd.meta['beat'], how='left', left_on='Beat', right_on='BEAT_NUM', suffixes=('', '_beat'))
+		self.df = self.df.merge(cd.meta['community'], how='left', left_on='Community Area', right_on='AREA_NUMBE', suffixes=('', '_community'))
 		self.df = self.df.merge(cd.meta['census'], how='left', left_on='Community Area', right_on='Community Area Number')
 		self.df = self.df.merge(cd.meta['fbi'], how='left', left_on='FBI Code', right_on='CODE')
 		return self
 
 	def pull_metadata(self):
-		os.system("curl 'https://data.cityofchicago.org/api/views/z8bn-74gv/rows.csv?accessType=DOWNLOAD' -o 'police_stations.csv'")
-		os.system("curl 'https://data.cityofchicago.org/api/views/c7ck-438e/rows.csv?accessType=DOWNLOAD' -o 'IUCR.csv'")
-		os.system("curl 'https://data.cityofchicago.org/api/views/n9it-hstw/rows.csv?accessType=DOWNLOAD' -o 'police_beat.csv'")
-		os.system("curl 'https://data.cityofchicago.org/api/views/24zt-jpfn/rows.csv?accessType=DOWNLOAD' -o 'police_districts.csv'")
-		os.system("curl 'https://data.cityofchicago.org/api/views/k9yb-bpqx/rows.csv?accessType=DOWNLOAD' -o 'wards.csv'")
-		os.system("curl 'https://data.cityofchicago.org/api/views/igwz-8jzy/rows.csv?accessType=DOWNLOAD' -o 'community_areas.csv'")		
-		os.system("curl 'https://data.cityofchicago.org/api/views/kn9c-c2s2/rows.csv?accessType=DOWNLOAD' -o 'census_data.csv'")
+		os.system("curl 'https://data.cityofchicago.org/api/views/z8bn-74gv/rows.csv?accessType=DOWNLOAD' -o '%spolice_stations.csv'" % self.DATA_PATH)
+		os.system("curl 'https://data.cityofchicago.org/api/views/c7ck-438e/rows.csv?accessType=DOWNLOAD' -o '%sIUCR.csv'" % self.DATA_PATH)
+		os.system("curl 'https://data.cityofchicago.org/api/views/n9it-hstw/rows.csv?accessType=DOWNLOAD' -o '%spolice_beat.csv'" % self.DATA_PATH)
+		os.system("curl 'https://data.cityofchicago.org/api/views/24zt-jpfn/rows.csv?accessType=DOWNLOAD' -o '%spolice_districts.csv'" % self.DATA_PATH)
+		os.system("curl 'https://data.cityofchicago.org/api/views/k9yb-bpqx/rows.csv?accessType=DOWNLOAD' -o '%swards.csv'" % self.DATA_PATH)
+		os.system("curl 'https://data.cityofchicago.org/api/views/igwz-8jzy/rows.csv?accessType=DOWNLOAD' -o '%scommunity_areas.csv'" % self.DATA_PATH)		
+		os.system("curl 'https://data.cityofchicago.org/api/views/kn9c-c2s2/rows.csv?accessType=DOWNLOAD' -o '%scensus_data.csv'" % self.DATA_PATH)
 		return self
 
-	def hisotgram(self, fields, dt_format, metric=None):
+
+	def community_crimes(self):
+		comm = self.pivot(['Community Area', 'the_geom_community'], '%Y')
+		print comm.the_geom_community.ix[1]
+
+	def _parse_geom(self):
+		pass
+
+
+	def pivot(self, fields, dt_format, metric=None):
 		use_metric=True
 		if not isinstance(fields, list):
 			if isinstance(fields, (basestring, numbers.Integral)):
@@ -99,48 +109,22 @@ class ChicagoData():
 
 		counts = self.df.groupby([metric]+fields, as_index=False).count().iloc[:, 0:len(fields)+2] 
 		counts.columns = [metric]+fields+['count']
-		
 		for i, f in enumerate(fields):
 			if i==0:
-				counts['fields'] = counts[f]
+				counts['fields'] = counts[f].map(lambda x: str(x))
 			else:
-				counts['fields'] +='---'+counts[f]
+				counts['fields'] +='---'+counts[f].map(lambda x: str(x))
 		pivot = counts.pivot('fields', metric, 'count')
 		pivot_sort = pivot.sort_values(pivot.columns[-1], ascending=False)
 		pivot_split = pivot_sort.reset_index().fields.str.split('---', expand=True)
 		pivot_rename = pivot_split.rename(columns={int(k): v for k, v in enumerate(fields)})
 		pivot_join = pivot_rename.merge(pivot_sort.reset_index(drop=True), left_index=True, right_index=True)
-		print 'pivot_join\n', pivot_join
 		if use_metric:
 			return pivot_join.set_index(fields).T.reset_index()
 		else:
 			return pivot_join
 
 
-
-
-	def check_borders(self, ID, dataset):
-		if not isinstance(fields, list):
-			if isinstance(fields, (basestring, numbers.Integral)):
-				fields = [fields]
-			else:
-				fields = list(fields)
-		point = self.df.loc[self.df.ID==ID, 'Location'].values[0]
-			
-		for index, row in self.meta[dataset].iterrows():
-			coordinate_sets = re.match("MULTIPOLYGON \(\(\((.*)\)\)\)", row['the_geom']).group(1)
-			coordinate_strings = [tuple(c.replace("\(", "").replace("\)", "").split(" ")) for c in coordinate_sets.split(", ")]
-			coordinates = [(float(c[0]), float(c[1])) for c in coordinate_strings]
-			bbPath = mplPath.Path(np.array(coordinates))
-			
-			if isinstance(point, basestring):
-				point = point.replace("\(", "").replace("\)", "").replace(" ", "").split(", ")
-
-			points = (float(point[0]), float(point[1]))
-
-			if bbPath.contains_point(points):
-				print 'index'
-				return index
 
 	def regression(self):
 		data = self.df
@@ -182,6 +166,62 @@ class ChicagoData():
 		print result.summary()
 		return result
 
+	def analysis(self, args):
+		os.system('mkdir -p ./analysis')
+	
+		gun_fbi_codes = self.gun_fbi_codes
+
+
+		print 'data:\n', self.df
+		for c in self.df.columns:
+			print c
+		print 'min date: %s\nmax data: %s' % (self.df['Date'].min(), self.df['Date'].max())
+
+		h = self.pivot('Primary Type', dt_format='%m/%Y')
+		print h
+		if not args.limit:
+			h.to_csv('./analysis/primary_description_stats.csv')
+		
+		d = self.pivot(['Primary Type', 'Description'], dt_format='%m/%Y')
+		print d
+		if not args.limit:
+			d.to_csv('./analysis/description_stats.csv')
+		
+		f = self.pivot(['FBI DESCRIPTION'], dt_format='%m/%Y')
+		print f
+		if not args.limit:
+			f.to_csv('./analysis/FBI_stats.csv')
+
+		
+		lf = self.pivot(['Location Description', 'FBI DESCRIPTION'], dt_format='%Y')
+		print lf
+		if not args.limit:
+			lf.to_csv('./analysis/locationtype_FBI_stats.csv')
+
+		lp = self.pivot(['Location Description', 'Primary Type'], dt_format='%Y')
+		print lp
+		if not args.limit:
+			lp.to_csv('./analysis/locationtype_primary_stats.csv')
+
+	 	corr = h.set_index('Primary Type').T.fillna(0).corr()
+		if not args.limit:
+			corr.to_csv('./analysis/primary_description_correlations.csv')
+
+		income = self.pivot(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='PER CAPITA INCOME ')
+		print 'income\n', income
+		if not args.limit:
+			income.to_csv('./analysis/income_FBI_stats.csv')
+
+
+		print self.meta['census']
+		harship = self.pivot(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='HARDSHIP INDEX')
+		print 'harship\n', hardshp
+		if not args.limit:
+			harship.to_csv('./analysis/hardship_FBI_stats.csv')
+
+		
+		self.regression()
+
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="Chicago_Data")
@@ -205,7 +245,6 @@ def parse_args():
 
 
 if __name__=="__main__":
-	os.system('mkdir -p ./analysis')
 	args = parse_args()
 	cd = ChicagoData()
 	
@@ -219,55 +258,8 @@ if __name__=="__main__":
 	cd.read_data(limit=args.limit)
 	cd.read_meta()
 	cd.merge_meta()
-	gun_fbi_codes = cd.gun_fbi_codes
+	cd.community_crimes()
 
-
-	print 'data:\n', cd.df
 	for c in cd.df.columns:
 		print c
-	print 'min date: %s\nmax data: %s' % (cd.df['Date'].min(), cd.df['Date'].max())
-
-	# h = cd.hisotgram('Primary Type', dt_format='%m/%Y')
-	# print h
-	# if not args.limit:
-	# 	h.to_csv('./analysis/primary_description_stats.csv')
 	
-	# d = cd.hisotgram(['Primary Type', 'Description'], dt_format='%m/%Y')
-	# print d
-	# if not args.limit:
-	# 	d.to_csv('./analysis/description_stats.csv')
-	
-	# f = cd.hisotgram(['FBI DESCRIPTION'], dt_format='%m/%Y')
-	# print f
-	# if not args.limit:
-	# 	f.to_csv('./analysis/FBI_stats.csv')
-
-	
-	# lf = cd.hisotgram(['Location Description', 'FBI DESCRIPTION'], dt_format='%Y')
-	# print lf
-	# if not args.limit:
-	# 	lf.to_csv('./analysis/locationtype_FBI_stats.csv')
-
-	# lp = cd.hisotgram(['Location Description', 'Primary Type'], dt_format='%Y')
-	# print lp
-	# if not args.limit:
-	# 	lp.to_csv('./analysis/locationtype_primary_stats.csv')
-
- 	# corr = h.set_index('Primary Type').T.fillna(0).corr()
-	# if not args.limit:
-	# 	corr.to_csv('./analysis/primary_description_correlations.csv')
-
-	# income = cd.hisotgram(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='PER CAPITA INCOME ')
-	# print 'income\n', income
-	# if not args.limit:
-	# 	income.to_csv('./analysis/income_FBI_stats.csv')
-
-
-	# print cd.meta['census']
-	# harship = cd.hisotgram(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='HARDSHIP INDEX')
-	# print 'harship\n', hardshp
-	# if not args.limit:
-	# 	harship.to_csv('./analysis/hardship_FBI_stats.csv')
-
-	
-	cd.regression()
