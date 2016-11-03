@@ -14,8 +14,8 @@
         <div class="dropdown">
 			<button onclick="dateDropdown()" class="dropbtn">Dropdown</button>
 				<div id="myDropdown" class="dropdown-content">
-			  		{% for t in date_dropdown %}
-					 <a href="#">{{ t }}</a>
+			  		{% for i, t in date_dropdown %}
+					 <a href="{{ url_for('chicago_dt', dt_filter=t) }}">{{ t }}</a>
 				    {% endfor %}
 		    	</div>
 		</div>

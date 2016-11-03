@@ -9,6 +9,7 @@ import matplotlib.path as mplPath
 import re
 from sklearn.linear_model import LinearRegression
 from statsmodels.api import OLS
+import cPickle
 
 
 class ChicagoData():
@@ -56,15 +57,15 @@ class ChicagoData():
 		
 	def _read_community(self):
 		community = pd.read_csv(self.DATA_PATH + 'community_areas.csv')
-		return self._geom_to_list(community)
+		return community
 		
 	def _read_beat(self):
 		beat = pd.read_csv(self.DATA_PATH + 'police_beat.csv')
-		return self._geom_to_list(beat)
+		return beat
 		
 	def _read_district(self):
 		police_district = pd.read_csv(self.DATA_PATH + 'police_districts.csv')
-		return self._geom_to_list(police_district)
+		return police_district
 		
 	def _read_census(self):
 		census = pd.read_csv(self.DATA_PATH + 'census_data.csv')
@@ -109,7 +110,7 @@ class ChicagoData():
 		return self
 
 	@classmethod
-	def _geom_to_list(cls, df):
+	def geom_to_list(cls, df):
 		for c in df.columns: 
 			if re.match('the_geom.*', c):
 				df[c] = df[c].map(lambda x: cls._parse_geom(x))
@@ -119,7 +120,7 @@ class ChicagoData():
 	def _parse_geom(coords):
 		coord_sets = re.match("MULTIPOLYGON \(\(\((.*)\)\)\)", coords).group(1)
 		coord_strings = [re.sub("\(|\)", "", c).split(" ") for c in coord_sets.split(", ")]
-		coord_list = ((float(c[0]), float(c[1])) for c in coord_strings)
+		coord_list = tuple([(float(c[1]), float(c[0])) for c in coord_strings])
 		return coord_list
 		
 
@@ -225,10 +226,19 @@ class PivotData(ChicagoData):
 		return dt_list
 
 def community_crimes(dt_format, *args, **kwargs):
-	comm = PivotData(['Community Area', 'the_geom_community'], dt_format, *args, **kwargs)
+	cd = ChicagoData()
+	community_pivot_file = cd.DATA_PATH + 'community_pivot.obj'
+	if os.path.isfile(community_pivot_file):
+		f = open(community_pivot_file, 'rb')
+		comm = cPickle.load(f)
+	else:
+		f = open(community_pivot_file, 'wb')
+		comm = PivotData(['Community Area', 'the_geom_community'], dt_format, *args, **kwargs)
+		cPickle.dump(comm, f, protocol=cPickle.HIGHEST_PROTOCOL)
+	f.close()
 	return comm
 
-comm = community_crimes('%m-%Y', ['Primary Type', 'WEAPONS VIOLATION'], limit=50000)
+comm = community_crimes('%Y-%m', ['Primary Type', 'WEAPONS VIOLATION'])
 print comm.date_list
 
 def parse_args():
@@ -256,3 +266,4 @@ if __name__=="__main__":
 	comm = community_crimes('%m-%Y', ['Primary Type', 'WEAPONS VIOLATION'], limit=args.limit)
 	print comm.data
 	print comm.date_list
+	print comm.data
