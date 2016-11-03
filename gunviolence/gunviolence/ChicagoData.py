@@ -19,6 +19,29 @@ class ChicagoData():
 		self.meta = dict()
 		self.gun_fbi_codes = ['01A', '2', '3', '04B', '04A', '15']
 
+	def initData(self, **kwargs):
+		if 'download_data' in kwargs:
+			if kwargs['download_data']:
+				self.pull_data()
+
+		if 'download_metadata' in kwargs:
+			if kwargs['download_metadata']:
+				self.pull_metadata()
+
+		if 'download_fbi' in kwargs:
+			if kwargs['download_fbi']:
+				self.pull_fbi_codes()
+
+		if 'limit' in kwargs:
+			if kwargs['limit']:
+				limit = kwargs['limit']
+		else:
+			limit = None
+		self.read_data(limit=limit)
+		self.read_meta()
+		self.merge_meta()
+		return self
+
 	def read_data(self, limit=None):
 		self.df = pd.read_csv(self.CSV_FILE, nrows=limit)
 		return self	
@@ -33,16 +56,16 @@ class ChicagoData():
 		
 	def _read_community(self):
 		community = pd.read_csv(self.DATA_PATH + 'community_areas.csv')
-		return community
-
+		return self._geom_to_list(community)
+		
 	def _read_beat(self):
 		beat = pd.read_csv(self.DATA_PATH + 'police_beat.csv')
-		return beat
-
+		return self._geom_to_list(beat)
+		
 	def _read_district(self):
 		police_district = pd.read_csv(self.DATA_PATH + 'police_districts.csv')
-		return police_district
-
+		return self._geom_to_list(police_district)
+		
 	def _read_census(self):
 		census = pd.read_csv(self.DATA_PATH + 'census_data.csv')
 		return census[~np.isnan(census['Community Area Number'])]
@@ -69,10 +92,10 @@ class ChicagoData():
 		return self
 
 	def merge_meta(self):
-		self.df = self.df.merge(cd.meta['beat'], how='left', left_on='Beat', right_on='BEAT_NUM', suffixes=('', '_beat'))
-		self.df = self.df.merge(cd.meta['community'], how='left', left_on='Community Area', right_on='AREA_NUMBE', suffixes=('', '_community'))
-		self.df = self.df.merge(cd.meta['census'], how='left', left_on='Community Area', right_on='Community Area Number')
-		self.df = self.df.merge(cd.meta['fbi'], how='left', left_on='FBI Code', right_on='CODE')
+		self.df = self.df.merge(self.meta['beat'], how='left', left_on='Beat', right_on='BEAT_NUM', suffixes=('', '_beat'))
+		self.df = self.df.merge(self.meta['community'], how='left', left_on='Community Area', right_on='AREA_NUMBE', suffixes=('', '_community'))
+		self.df = self.df.merge(self.meta['census'], how='left', left_on='Community Area', right_on='Community Area Number')
+		self.df = self.df.merge(self.meta['fbi'], how='left', left_on='FBI Code', right_on='CODE')
 		return self
 
 	def pull_metadata(self):
@@ -85,46 +108,32 @@ class ChicagoData():
 		os.system("curl 'https://data.cityofchicago.org/api/views/kn9c-c2s2/rows.csv?accessType=DOWNLOAD' -o '%scensus_data.csv'" % self.DATA_PATH)
 		return self
 
+	@classmethod
+	def _geom_to_list(cls, df):
+		for c in df.columns: 
+			if re.match('the_geom.*', c):
+				df[c] = df[c].map(lambda x: cls._parse_geom(x))
+		return df
 
-	def community_crimes(self):
-		comm = self.pivot(['Community Area', 'the_geom_community'], '%Y')
-		print comm.the_geom_community.ix[1]
+	@staticmethod
+	def _parse_geom(coords):
+		coord_sets = re.match("MULTIPOLYGON \(\(\((.*)\)\)\)", coords).group(1)
+		coord_strings = [re.sub("\(|\)", "", c).split(" ") for c in coord_sets.split(", ")]
+		coord_list = ((float(c[0]), float(c[1])) for c in coord_strings)
+		return coord_list
+		
 
-	def _parse_geom(self):
-		pass
-
-
-	def pivot(self, fields, dt_format, metric=None):
-		use_metric=True
-		if not isinstance(fields, list):
-			if isinstance(fields, (basestring, numbers.Integral)):
-				fields = [fields]
+	@staticmethod
+	def _set_list(f):
+		if not isinstance(f, list):
+			if isinstance(f, (basestring, numbers.Integral)):
+				return [f]
 			else:
-				fields = list(fields)
-
-		if not metric:
-			use_metric = False
-			metric = 'Period'
-			self.df[metric] = self.df['Date'].map(lambda x: datetime.strptime(x, '%m/%d/%Y %I:%M:%S %p').strftime(dt_format))
-
-		counts = self.df.groupby([metric]+fields, as_index=False).count().iloc[:, 0:len(fields)+2] 
-		counts.columns = [metric]+fields+['count']
-		for i, f in enumerate(fields):
-			if i==0:
-				counts['fields'] = counts[f].map(lambda x: str(x))
-			else:
-				counts['fields'] +='---'+counts[f].map(lambda x: str(x))
-		pivot = counts.pivot('fields', metric, 'count')
-		pivot_sort = pivot.sort_values(pivot.columns[-1], ascending=False)
-		pivot_split = pivot_sort.reset_index().fields.str.split('---', expand=True)
-		pivot_rename = pivot_split.rename(columns={int(k): v for k, v in enumerate(fields)})
-		pivot_join = pivot_rename.merge(pivot_sort.reset_index(drop=True), left_index=True, right_index=True)
-		if use_metric:
-			return pivot_join.set_index(fields).T.reset_index()
+				return list(f)
 		else:
-			return pivot_join
+			return f
 
-
+	
 
 	def regression(self):
 		data = self.df
@@ -166,62 +175,61 @@ class ChicagoData():
 		print result.summary()
 		return result
 
-	def analysis(self, args):
-		os.system('mkdir -p ./analysis')
-	
-		gun_fbi_codes = self.gun_fbi_codes
 
+class PivotData(ChicagoData):
+	def __init__(self, fields, dt_format, *args, **kwargs):
+		ChicagoData.__init__(self)
+		self.initData(**kwargs)
+		self.fields = self._set_list(fields)
+		self.dt_format = dt_format
+		self.args = args
+		self.pivot()
 
-		print 'data:\n', self.df
-		for c in self.df.columns:
-			print c
-		print 'min date: %s\nmax data: %s' % (self.df['Date'].min(), self.df['Date'].max())
+	def pivot(self):
+		data = self.df.copy()
+		sep = '---'
+		for arg in self.args:
+			assert len(arg)==2, "Filter must define field and filter values"
+			assert arg[0] in data.columns
+			key = arg[0]
+			val = self._set_list(arg[1])
+			data = data[data[key].isin(val)].reset_index(drop=True)
 
-		h = self.pivot('Primary Type', dt_format='%m/%Y')
-		print h
-		if not args.limit:
-			h.to_csv('./analysis/primary_description_stats.csv')
-		
-		d = self.pivot(['Primary Type', 'Description'], dt_format='%m/%Y')
-		print d
-		if not args.limit:
-			d.to_csv('./analysis/description_stats.csv')
-		
-		f = self.pivot(['FBI DESCRIPTION'], dt_format='%m/%Y')
-		print f
-		if not args.limit:
-			f.to_csv('./analysis/FBI_stats.csv')
+		data['Period'] = data['Date'].map(lambda x: datetime.strptime(x, '%m/%d/%Y %I:%M:%S %p').strftime(self.dt_format))
+		counts = data.groupby(['Period']+self.fields, as_index=False).count().iloc[:, 0:len(self.fields)+2] 
+		counts.columns = ['Period']+self.fields+['count']
+		for i, f in enumerate(self.fields):
+			field_counts = counts[f].map(lambda x: str(x))
+			if i==0:
+				counts['fields'] = field_counts
+			else:
+				counts['fields'] += sep+field_counts
 
-		
-		lf = self.pivot(['Location Description', 'FBI DESCRIPTION'], dt_format='%Y')
-		print lf
-		if not args.limit:
-			lf.to_csv('./analysis/locationtype_FBI_stats.csv')
+		pivot = counts.pivot('fields', 'Period', 'count')
+		pivot_split = pivot.reset_index().fields.str.split(sep, expand=True)
+		pivot_rename = pivot_split.rename(columns={int(k): v for k, v in enumerate(self.fields)})
+		self._data = pivot_rename.merge(pivot.reset_index(drop=True), left_index=True, right_index=True)
+		return self
 
-		lp = self.pivot(['Location Description', 'Primary Type'], dt_format='%Y')
-		print lp
-		if not args.limit:
-			lp.to_csv('./analysis/locationtype_primary_stats.csv')
+	def _date_cols(self):
+		return set(self._data.columns) - set(self.fields)
 
-	 	corr = h.set_index('Primary Type').T.fillna(0).corr()
-		if not args.limit:
-			corr.to_csv('./analysis/primary_description_correlations.csv')
+	@property
+	def data(self):
+		return self._data
 
-		income = self.pivot(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='PER CAPITA INCOME ')
-		print 'income\n', income
-		if not args.limit:
-			income.to_csv('./analysis/income_FBI_stats.csv')
+	@property
+	def date_list(self):
+		dt_list = list(self._date_cols())
+		dt_list.sort()
+		return dt_list
 
+def community_crimes(dt_format, *args, **kwargs):
+	comm = PivotData(['Community Area', 'the_geom_community'], dt_format, *args, **kwargs)
+	return comm
 
-		print self.meta['census']
-		harship = self.pivot(['FBI DESCRIPTION', 'FBI Code'], dt_format='%m/%Y', metric='HARDSHIP INDEX')
-		print 'harship\n', hardshp
-		if not args.limit:
-			harship.to_csv('./analysis/hardship_FBI_stats.csv')
-
-		
-		self.regression()
-
+comm = community_crimes('%m-%Y', ['Primary Type', 'WEAPONS VIOLATION'], limit=50000)
+print comm.date_list
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="Chicago_Data")
@@ -238,7 +246,6 @@ def parse_args():
 	parser.add_argument("-limit",  metavar='limit', type = int, default=None,
 							help="limit size of data for faster testing of code")
 
-
 	args = parser.parse_args()
 	return args
 
@@ -246,20 +253,6 @@ def parse_args():
 
 if __name__=="__main__":
 	args = parse_args()
-	cd = ChicagoData()
-	
-	if args.download_data:
-		cd.pull_data()
-	if args.download_metadata:
-		cd.pull_metadata()	
-	if args.download_fbi:
-		cd.pull_fbi_codes()
-
-	cd.read_data(limit=args.limit)
-	cd.read_meta()
-	cd.merge_meta()
-	cd.community_crimes()
-
-	for c in cd.df.columns:
-		print c
-	
+	comm = community_crimes('%m-%Y', ['Primary Type', 'WEAPONS VIOLATION'], limit=args.limit)
+	print comm.data
+	print comm.date_list

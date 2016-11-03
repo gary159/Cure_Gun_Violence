@@ -3,11 +3,22 @@
     <head>
     	{{ city_map.js }}
 		<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+		<script src="{{ url_for('static', filename='map.js') }}"></script>
     </head>
     <body align="center">
-        <h1>Chicago</h1>
-        <div id="map">{{ city_map.html }}</div>
 
+        <h1>Chicago</h1>
+        
+        <div id="map">{{ city_map.html }}</div>
+        
+        <div class="dropdown">
+			<button onclick="dateDropdown()" class="dropbtn">Dropdown</button>
+				<div id="myDropdown" class="dropdown-content">
+			  		{% for t in date_dropdown %}
+					 <a href="#">{{ t }}</a>
+				    {% endfor %}
+		    	</div>
+		</div>
        
     </body>
 </html>

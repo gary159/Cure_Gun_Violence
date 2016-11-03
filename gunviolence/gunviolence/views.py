@@ -4,7 +4,7 @@ from flask_googlemaps import Map
 from flask import Flask, render_template, url_for
 from werkzeug.serving import run_simple
 from ConfigUtil import config
-from data import ChicagoData
+from ChicagoData import comm
 
 key=config['GOOGLE_MAPS_KEY']
 GoogleMaps(app, key=key)
@@ -30,7 +30,7 @@ def chicago():
         style="height:700px;width:500px;margin:0;"
     )
 
-    return render_template('map.html', city_map=city_map)
+    return render_template('map.html', city_map=city_map, date_dropdown=comm.date_list, data=comm.data)
 
 
 
