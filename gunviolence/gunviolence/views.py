@@ -39,7 +39,7 @@ def main_page():
 @app.route('/chicago')
 def chicago(map_dict=map_dict):
     city_map = Map(**map_dict)
-    return render_template('map.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
+    return render_template('chicago.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
 
 
 
@@ -60,7 +60,7 @@ def chicago_dt(dt_filter, map_dict=map_dict):
         polyargs['stroke_weight'] = 1
         polyargs['fill_opacity'] = row[dt_filter]/row['norm']
         city_map.add_polygon(path=path, **polyargs)
-    return render_template('map.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
+    return render_template('chicago.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
 
 
 if __name__ == '__main__':

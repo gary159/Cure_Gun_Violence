@@ -10,7 +10,7 @@ import re
 from sklearn.linear_model import LinearRegression
 from statsmodels.api import OLS
 import cPickle
-
+import sqlite3
 
 class ChicagoData():
 	def __init__(self):
