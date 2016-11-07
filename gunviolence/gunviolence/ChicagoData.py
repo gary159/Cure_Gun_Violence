@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import os
-import argparse
 from datetime import datetime
 import numbers
 import requests
@@ -11,6 +10,8 @@ from sklearn.linear_model import LinearRegression
 from statsmodels.api import OLS
 import cPickle
 import sqlite3
+from runserver import args
+
 
 class ChicagoData():
 	def __init__(self):
@@ -235,33 +236,16 @@ def community_crimes(dt_format, *args, **kwargs):
 	else:
 		f = open(community_pivot_file, 'wb')
 		comm = PivotData(['Community Area', 'COMMUNITY', 'the_geom_community'], dt_format, *args, **kwargs)
+		comm.df = pd.DataFrame([]) 
 		cPickle.dump(comm, f, protocol=cPickle.HIGHEST_PROTOCOL)
 	f.close()
 	return comm
 
-comm = community_crimes('%Y-%m', ['Primary Type', 'WEAPONS VIOLATION'])
+print 'args', args
+comm = community_crimes('%Y-%m', ['Primary Type', 'WEAPONS VIOLATION'], repull=args.repull)
 print comm.date_list
 
-def parse_args():
-	parser = argparse.ArgumentParser(description="Chicago_Data")
-												
-	parser.add_argument("-download_data",  action="store_true",
-						help="use to download csv data file")
 
-	parser.add_argument("-download_metadata",  action="store_true",
-						help="use to download csv meta data files")
-	
-	parser.add_argument("-download_fbi",  action="store_true",
-						help="pull and parse fbi code data to csv")
-												
-	parser.add_argument("-repull",  action="store_true",
-						help="repull pivot data object")
-	
-	parser.add_argument("-limit",  metavar='limit', type = int, default=None,
-							help="limit size of data for faster testing of code")
-
-	args = parser.parse_args()
-	return args
 
 
 
