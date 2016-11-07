@@ -228,12 +228,13 @@ class PivotData(ChicagoData):
 def community_crimes(dt_format, *args, **kwargs):
 	cd = ChicagoData()
 	community_pivot_file = cd.DATA_PATH + 'community_pivot.obj'
-	if os.path.isfile(community_pivot_file):
+	kwargs.setdefault('repull', False)
+	if (not kwargs['repull']) and os.path.isfile(community_pivot_file):
 		f = open(community_pivot_file, 'rb')
 		comm = cPickle.load(f)
 	else:
 		f = open(community_pivot_file, 'wb')
-		comm = PivotData(['Community Area', 'the_geom_community'], dt_format, *args, **kwargs)
+		comm = PivotData(['Community Area', 'COMMUNITY', 'the_geom_community'], dt_format, *args, **kwargs)
 		cPickle.dump(comm, f, protocol=cPickle.HIGHEST_PROTOCOL)
 	f.close()
 	return comm
@@ -253,6 +254,9 @@ def parse_args():
 	parser.add_argument("-download_fbi",  action="store_true",
 						help="pull and parse fbi code data to csv")
 												
+	parser.add_argument("-repull",  action="store_true",
+						help="repull pivot data object")
+	
 	parser.add_argument("-limit",  metavar='limit', type = int, default=None,
 							help="limit size of data for faster testing of code")
 

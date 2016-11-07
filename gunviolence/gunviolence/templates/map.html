@@ -4,11 +4,12 @@
     	{{ city_map.js }}
 		<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
 		<script src="{{ url_for('static', filename='map.js') }}"></script>
+		<script src="{{ url_for('static', filename='jquery-3.1.1.js') }}"></script>
     </head>
     <body align="center">
 
         <h1>Chicago</h1>
-        
+		        
         <div id="map">{{ city_map.html }}</div>
         
         <div class="dropdown">
@@ -19,6 +20,5 @@
 				    {% endfor %}
 		    	</div>
 		</div>
-       
     </body>
 </html>
