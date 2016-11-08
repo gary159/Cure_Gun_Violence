@@ -1,10 +1,19 @@
 var selected_dt;
 var res = {};
 
+var polypaths = [];
+var map = null;
+var prev_infowindow_map = null;
+var map_polygons = [];
+// var map_markers = [];
+// var map_rectangles = [];
+// var map_circles = [];
+// var map_polylines = [];
+
 $.getJSON($SCRIPT_ROOT + '/chicago/0', function( json ) {
 		res = json;
-		console.log(res['map_dict']);
 	});
+console.log(res)
 google.maps.event.addDomListener(window, 'load', initialize_map);
 
 
@@ -25,20 +34,12 @@ function changeOption() {
 
 
 
-var polypaths = [];
-var map = null;
-var map_markers = [];
-var map_rectangles = [];
-var map_circles = [];
-var map_polygons = [];
-var map_polylines = [];
-var prev_infowindow_map = null;
-
 function initialize_map() {
     document.getElementById('view-side').style.display = 'block';
+    console.log(res.map_dict)
     map = new google.maps.Map(
     document.getElementById('view-side'), {
-        center: new google.maps.LatLng(res.map_dict.center[0],  res.map_dict.center[1]),
+        center: new google.maps.LatLng(res.map_dict.center[0], res.map_dict.center[1]),
         zoom: res.map_dict.zoom,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         zoomControl: res.map_dict.zoom_control,
@@ -82,6 +83,12 @@ function drawPoly(res) {
 		        geodesic: true
 		    });
 		    map_polygons[i].setMap(map);
+		    map_polygons[i].addListener('mouseover', hoverPoly);
+		    map_polygons[i].addListener('mouseout', function() {
+		    	unhoverPoly(this);
+		    });
+
+		    // google.maps.event.addListener(map_polygons[i], 'mouseout', unClickPoly(i));
 
 		   // if(raw_polygons[i].infobox)
 		   // {
@@ -95,7 +102,14 @@ function drawPoly(res) {
 	}
 }
 
+function hoverPoly() {
+	this.setOptions({fillOpacity: 1});
+}
 
+function unhoverPoly(p) {
+	var idx = map_polygons.indexOf(p);
+	p.setOptions({fillOpacity: res.results.fill_opacity[idx]});
+}
 
 // function addPoly() {
 //         flightPath.setMap(map);

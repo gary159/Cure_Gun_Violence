@@ -54,7 +54,7 @@ def chicago_dt(dt_filter, map_dict=map_dict):
     polyargs['stroke_color'] = '#FF0000' 
     polyargs['fill_color'] = '#FF0000' 
     polyargs['stroke_opacity'] = 1
-    polyargs['stroke_weight'] = .1
+    polyargs['stroke_weight'] = .2
 
     return jsonify({'selected_dt': dt_filter, 'map_dict': map_dict, 'polyargs': polyargs, 'results': comm_data.to_dict()})
 
