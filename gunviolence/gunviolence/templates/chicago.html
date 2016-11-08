@@ -2,17 +2,18 @@
     <html>
     <head>
     	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
-    	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    	<script type="text/javascript" src="{{ url_for('static', filename='chicago.js') }}"></script>
-    	{{ city_map.js }}
-		
+        <script src="//maps.googleapis.com/maps/api/js?v=3&amp;key={{ api_key }}" type="text/javascript"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+        <script>window.jQuery || document.write('<script src="{{ url_for('static', filename='jquery-3.1.1') }}">\x3C/script>')</script>
+        <script type=text/javascript> $SCRIPT_ROOT = {{ request.script_root|tojson|safe }}; </script>
+        <script type="text/javascript" src="{{ url_for('static', filename='chicago.js') }}"></script>		
     </head>
     <body align="center">
     	
 
         <h1>Chicago</h1>
 		        
-        <div id="map">{{ city_map.html }}</div>
+        <div id="map"><div id="view-side" class="map"></div></div>
         
         <div class="dropdown">
 			<select id="myDropdown" onchange="changeOption()">

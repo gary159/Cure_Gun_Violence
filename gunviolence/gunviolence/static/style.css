@@ -10,3 +10,8 @@ body {
     float: left;
 }
 
+ #view-side { 
+ 	height:800px;
+ 	width:600px;
+ 	margin:0; 
+ }

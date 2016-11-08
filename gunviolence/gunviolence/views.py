@@ -1,7 +1,5 @@
 from gunviolence import app
-from flask_googlemaps import GoogleMaps
-from flask_googlemaps import Map
-from flask import Flask, render_template, url_for
+from flask import Flask, render_template, url_for, jsonify
 from werkzeug.serving import run_simple
 from ConfigUtil import config
 from ChicagoData import comm
@@ -14,8 +12,6 @@ def gen_hex_colour_code():
 
 
 key=config['GOOGLE_MAPS_KEY']
-GoogleMaps(app, key=key)
-
 
 map_dict = {
             'identifier': 'view-side',
@@ -28,6 +24,7 @@ map_dict = {
             'rorate_control': False,
             'maptype_control': False,
             'streetview_control': False,
+            'scale_control': True,
             'style': 'height:800px;width:600px;margin:0;'}
 
 @app.route('/')
@@ -38,29 +35,28 @@ def main_page():
 
 @app.route('/chicago')
 def chicago(map_dict=map_dict):
-    city_map = Map(**map_dict)
-    return render_template('chicago.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
+    return render_template('chicago.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
 
 
 
 @app.route('/chicago/<string:dt_filter>')
 def chicago_dt(dt_filter, map_dict=map_dict):
-    city_map = Map(**map_dict)
+    if dt_filter!='0':
+        cols = set(comm.data.columns) - set(comm.date_list) 
+        cols |= set([dt_filter])
+        comm_data = comm.geom_to_list(comm.data[list(cols)])
+        comm_data.loc[:, dt_filter] = comm_data[dt_filter].fillna(0)
+        comm_data.loc[:, 'norm'] = np.linalg.norm(comm_data[dt_filter].fillna(0))
+        comm_data.loc[:, 'fill_opacity'] = comm_data[dt_filter]/comm_data['norm']
+    else: 
+        comm_data=pd.DataFrame([])
     polyargs = {}
-    cols = set(comm.data.columns) - set(comm.date_list) 
-    cols |= set([dt_filter])
-    comm_data = comm.geom_to_list(comm.data[list(cols)])
-    comm_data.loc[:, 'norm'] = np.linalg.norm(comm_data[dt_filter].fillna(0))
+    polyargs['stroke_color'] = '#FF0000' 
+    polyargs['fill_color'] = '#FF0000' 
+    polyargs['stroke_opacity'] = 1
+    polyargs['stroke_weight'] = 1
 
-    for index, row in comm_data.iterrows():
-        polyargs['stroke_color'] = '#FF0000' 
-        polyargs['fill_color'] = '#FF0000' 
-        path = [p for p in row['the_geom_community']]
-        polyargs['stroke_opacity'] = 1
-        polyargs['stroke_weight'] = 1
-        polyargs['fill_opacity'] = row[dt_filter]/row['norm']
-        city_map.add_polygon(path=path, **polyargs)
-    return render_template('chicago.html', city_map=city_map, date_dropdown=[d for d in enumerate(comm.date_list)], data=comm.data)
+    return jsonify({'selected_dt': dt_filter, 'map_dict': map_dict, 'polyargs': polyargs, 'results': comm_data.to_dict()})
 
 
 if __name__ == '__main__':
