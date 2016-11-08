@@ -15,6 +15,9 @@ function changeOption() {
 	$.getJSON($SCRIPT_ROOT + '/chicago/' + selected_dt, function( json ) {
 		res = json;
 		console.log(res['map_dict']);
+		if (polypaths.length>0){
+			removePoly(res);
+		}
 		drawPoly(res);
 	});
 
@@ -22,7 +25,7 @@ function changeOption() {
 
 
 
-
+var polypaths = [];
 var map = null;
 var map_markers = [];
 var map_rectangles = [];
@@ -48,12 +51,17 @@ function initialize_map() {
     });
 }
 
+function removePoly(res) {
+	for(i = 0; i < Object.keys(res.results[res.selected_dt]).length; i++) {
+		map_polygons[i].setMap(null);
+	}
+}
+
 function drawPoly(res) {
 	if (res.results.hasOwnProperty(res.selected_dt)) {
 
 		// add polygons
-		var polypaths = [];
-		for(i = 0; i < Object.keys(res.results[selected_dt]).length; i++) {
+		for(i = 0; i < Object.keys(res.results[res.selected_dt]).length; i++) {
 			var path_len = res.results.the_geom_community[i].length;
 			polypaths[i] = []
 			for (j = 0; j < path_len; j++){

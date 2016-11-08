@@ -7,11 +7,15 @@ body {
     padding-right: 30px;
     padding-bottom: 50px;
     padding-left: 80px;
-    float: left;
+    float: bottom;
 }
 
  #view-side { 
  	height:800px;
  	width:600px;
  	margin:0; 
+ }
+
+ .dropdown {
+ 	float: center;
  }
