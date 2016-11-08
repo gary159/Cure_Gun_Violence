@@ -1,6 +1,6 @@
 var selected_dt;
 var res = {};
-
+var latlngclicked;
 var polypaths = [];
 var map = null;
 var prev_infowindow_map = null;
@@ -87,20 +87,35 @@ function drawPoly(res) {
 		    map_polygons[i].addListener('mouseout', function() {
 		    	unhoverPoly(this);
 		    });
-
-		    // google.maps.event.addListener(map_polygons[i], 'mouseout', unClickPoly(i));
-
-		   // if(raw_polygons[i].infobox)
-		   // {
-		   //      google.maps.event.addListener(
-		   //              map_polygons[i],
-		   //              'click',
-		   //              getInfoCallback(map, raw_polygons[i].infobox)
-		   //      );
-		   //     }
+		    map_polygons[i].addListener('click', function(event) {
+		    	latlngclicked = event.latLng;
+		    	var idx = map_polygons.indexOf(this);
+				var content = res.results.COMMUNITY[idx];
+				var infowindow = new google.maps.InfoWindow({content: content, position: latlngclicked});
+		    	console.log(latlngclicked.lat());
+	    		console.log(content);
+	    		console.log(infowindow.getPosition().lng());
+			    if (prev_infowindow_map) {
+		    		console.log(prev_infowindow_map);
+		            prev_infowindow_map.close();
+		        }
+	        	infowindow.open(map);
+	        	prev_infowindow_map = infowindow;		    	
+		    });
 	    }
 	}
 }
+
+
+
+function getInfoCallback(map, p) {
+
+    return function(ev) {
+        
+        
+    };
+}
+
 
 function hoverPoly() {
 	this.setOptions({fillOpacity: 1});
@@ -211,17 +226,3 @@ function unhoverPoly(p) {
 //     }
 
 
-
-
-function getInfoCallback(map, content) {
-    var infowindow = new google.maps.InfoWindow({content: content});
-    return function(ev) {
-        if( prev_infowindow_map ) {
-            prev_infowindow_map.close();
-        }
-        prev_infowindow_map = infowindow;
-        infowindow.setPosition(ev.latLng);
-        infowindow.setContent(content);
-        infowindow.open(map, this);
-    };
-}
