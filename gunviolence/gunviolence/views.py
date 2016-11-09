@@ -16,7 +16,6 @@ key=config['GOOGLE_MAPS_KEY']
 map_dict = {
             'identifier': 'view-side',
             'zoom': 11,
-            'center': (41.8781136, -87.6298),        
             'maptype': 'ROADMAP',
             'zoom_control': True,
             'scroll_wheel': False,
@@ -33,23 +32,15 @@ def main_page():
 
 
 
-@app.route('/chicago')
-def chicago(map_dict=map_dict):
-    return render_template('chicago.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
+@app.route('/<string:city>')
+def city(city, map_dict=map_dict):
+    map_dict['center'] = tuple(config['center'][city])
+    return render_template('city.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key, city=city)
 
 
-@app.route('/baltimore')
-def baltimore(map_dict=map_dict):
-    # return render_template('baltimore.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
-    return
-
-@app.route('/newyork')
-def newyork(map_dict=map_dict):
-    # return render_template('newyork.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
-    return
-
-@app.route('/chicago/<string:dt_filter>')
-def chicago_dt(dt_filter, map_dict=map_dict):
+@app.route('/<string:city>/<string:dt_filter>')
+def monthly_data(city, dt_filter, map_dict=map_dict):
+    map_dict['center'] = tuple(config['center'][city])
     if dt_filter!='0':
         cols = set(comm.data.columns) - set(comm.date_list) 
         cols |= set([dt_filter])

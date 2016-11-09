@@ -7,7 +7,6 @@
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
         <script>window.jQuery || document.write('<script src="{{ url_for('static', filename='jquery-3.1.1') }}">\x3C/script>')</script>
         <script type=text/javascript> $SCRIPT_ROOT = {{ request.script_root|tojson|safe }}; </script>
-        <script type="text/javascript" src="{{ url_for('static', filename='chicago.js') }}"></script>   
         <!-- Latest compiled and minified CSS -->
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
@@ -25,16 +24,16 @@
 	            <h1 class="page-header">Capstone Project: Gun Violence</h1>
 	        </div>   
 	    </div>
-	    <div id="frontpage-btn-group">
+	    <div class="container text-center">
 		    <div class="btn-group">
 				<button id="frontpage-dropdown" class="btn btn-default btn-lg dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 		        	Select City
 		        	<span id="frontpage-caret" class="caret"></span>
 				</button>    
 				<ul class="dropdown-menu">	
-		        	<li><a href="{{ url_for('baltimore') }}">Baltimore</a></li>
-		            <li><a href="{{ url_for('chicago') }}">Chicago</a></li>
-		            <li><a href="{{ url_for('newyork') }}">New York</a></li>
+		        	<li><a href="{{ url_for('city', city='baltimore') }}">Baltimore</a></li>
+		            <li><a href="{{ url_for('city', city='chicago') }}">Chicago</a></li>
+		            <li><a href="{{ url_for('city', city='newyork') }}">New York</a></li>
 		        </ul>
 		    </div>
 	    </div>   
