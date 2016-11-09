@@ -38,6 +38,15 @@ def chicago(map_dict=map_dict):
     return render_template('chicago.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
 
 
+@app.route('/baltimore')
+def baltimore(map_dict=map_dict):
+    # return render_template('baltimore.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
+    return
+
+@app.route('/newyork')
+def newyork(map_dict=map_dict):
+    # return render_template('newyork.html', date_dropdown=[d for d in enumerate(comm.date_list)], api_key=key)
+    return
 
 @app.route('/chicago/<string:dt_filter>')
 def chicago_dt(dt_filter, map_dict=map_dict):

@@ -1,5 +1,5 @@
 body {
-	font-family: Helvetica
+	font-family: Helvetica;
 }
 
 #map {
@@ -21,3 +21,4 @@ body {
  	width: 150px;
  	height: 30px;
 }
+
