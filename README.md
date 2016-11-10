@@ -1,2 +1,2 @@
-# Cure_Gun_Violence
+# Gun Violence Web App
 Capstone project at Columbia University
