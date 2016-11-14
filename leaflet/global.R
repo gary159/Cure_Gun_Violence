@@ -1,5 +1,6 @@
 library(dplyr)
-
+library(RColorBrewer)
+library(ggplot2)
 # Data cleaning to get rid of records with no geo info
 
 # Import truncate data
@@ -21,43 +22,5 @@ library(dplyr)
 #df_small <- df[sample.int(nrow(df), 1000),]
 #head(df_small,2)
 #write.csv(df_small, file = 'data/nyc/NYPD_7_Major_Felony_Incident_Map_2012_clean(1000 obs).csv', row.names=FALSE)
-nyc <- read.csv('NYPD_7_Major_Felony_Incident_Map_2012_clean(1000 obs).csv')#, stringsAsFactors=FALSE)
-
-
-previewColors(colorFactor("Set1", domain = nyc$OFFENSE), nyc$OFFENSE)
-
-
-nycColors <- brewer.pal(7,"Set1")
-names(nycColors) <- levels(nyc$OFFENSE)
-colScale <- scale_fill_manual(name = "OFFENSE",values = nycColors)
-qplot(OFFENSE, data=nyc, geom="bar")+colScale
-ggplot(nyc, aes(OFFENSE, fill = OFFENSE)) + geom_bar() +colScale
-
-nycColors
-pal <- colorFactor("Set1", nyc$OFFENSE)
-
-previewColors(colorFactor("Set1", domain = nyc$OFFENSE), nyc$OFFENSE)
-qplot(OFFENSE, data=nyc, geom="bar", fill=OFFENSE)+ scale_fill_brewer(nycColors) + ggtitle("Number of crime by type")
-
-qplot(OFFENSE, data=nyc, geom="bar", fill=OFFENSE)+ scale_fill_brewer(palette="Set2", guide=FALSE) + ggtitle("Number of crime by type")
-
-
-
-
-dat <- data.frame(x=runif(10),y=runif(10),
-                  grp = rep(LETTERS[1:5],each = 2),stringsAsFactors = TRUE)
-
-#Create a custom color scale
-library(RColorBrewer)
-myColors <- brewer.pal(6,"Set1")
-myColors
-
-names(myColors) <- levels(dat$grp)
-colScale <- scale_colour_manual(name = "OFFENSE",values = nycColors)
-#One plot with all the data
-p <- ggplot(dat,aes(x,y,colour = grp)) + geom_point()
-p1 <- p + colScale
-
-#A second plot with only four of the levels
-p2 <- p %+% droplevels(subset(dat[4:10,])) + colScale
+nyc <- read.csv('data/NYPD_7_Major_Felony_Incident_Map_2012_clean(1000 obs).csv', stringsAsFactors=FALSE)
 
