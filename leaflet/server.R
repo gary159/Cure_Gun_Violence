@@ -6,8 +6,6 @@ library(lattice)
 library(dplyr)
 
 
-draw <- nyc
-
 shinyServer(function(input, output, session) {
   
 ## Interactive Map ###########################################
@@ -25,11 +23,11 @@ shinyServer(function(input, output, session) {
 
   
   # Choose just one crime
-  drawvalue <- reactive({if (input$NY_crime == ''){
-    t <- filter(draw, DATE > input$NY_daterange[1], DATE < input$NY_daterange[2])
+  drawvalue <- reactive({if (input$NY_crime == 'all'){
+    t <- filter(nyc, DATE > input$NY_daterange[1], DATE < input$NY_daterange[2])
     return(t)}
     else{
-    t <- filter(draw, OFFENSE == input$NY_crime)
+    t <- filter(nyc, OFFENSE == input$NY_crime)
     return(t)
   }})
   
@@ -45,7 +43,7 @@ shinyServer(function(input, output, session) {
         clearShapes() %>%
         showGroup('Cluster') %>%
         addCircles(~LONGITUDE, ~LATITUDE, radius=radius, group = "Circle",
-                   stroke=FALSE, fillOpacity=0.8, fillColor=pal(colorData), popup = nyc$OFFENSE) %>%
+                   stroke=FALSE, fillOpacity=0.8, fillColor=pal(colorData), popup = draw$OFFENSE) %>%
         clearMarkerClusters() %>%
         addCircleMarkers(~LONGITUDE, ~LATITUDE, radius = 0, group = "Cluster",
                          clusterOptions = markerClusterOptions())%>%
@@ -56,7 +54,7 @@ shinyServer(function(input, output, session) {
         clearShapes() %>%
         hideGroup('Cluster') %>%
         addCircles(~LONGITUDE, ~LATITUDE, radius=radius, group = "Circle",
-                   stroke=FALSE, fillOpacity=0.8, fillColor=pal(colorData), popup = nyc$OFFENSE) %>%
+                   stroke=FALSE, fillOpacity=0.8, fillColor=pal(colorData), popup = draw$OFFENSE) %>%
         addLegend("bottomleft", pal=pal, values=colorData,
                   layerId="colorLegend")
     }
