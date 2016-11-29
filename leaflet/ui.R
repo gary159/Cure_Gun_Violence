@@ -6,7 +6,7 @@ library(DT)
 
 # Choices for drop-downs
 vars <- c(
-  "All Crimes" = "",
+  "ALL CRIMES" = "all",
   "BURGLARY" = "BURGLARY",
   "FELONY ASSAULT" = "FELONY ASSAULT",
   "GRAND LARCENY" = "GRAND LARCENY",
